@@ -225,3 +225,90 @@ user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 * Les requêtes Prisma sont explicites et typées, facilitant l’usage des relations
 * Prisma simplifie la navigation entre entités liées avec `include`, `select`, `connect`, `create`, etc.
 
+
+
+<br/>
+
+# Annexe 1 - ?
+
+
+### <h2 id="definition">Définition de `Profile?`</h2>
+
+```prisma
+model User {
+  id      String   @id @default(cuid())
+  email   String   @unique
+  profile Profile?
+}
+```
+
+* `Profile?` signifie que **le champ `profile` peut être nul (null)**.
+* Autrement dit, **un utilisateur peut ne pas avoir de profil associé**.
+* Prisma interprète cela comme une **relation optionnelle** en base de données (clé étrangère facultative ou inverse non obligatoire).
+
+---
+
+### <h2 id="comparaison">Comparaison avec `Profile` (sans `?`)</h2>
+
+| Syntaxe dans Prisma | Interprétation                                                                 |
+| ------------------- | ------------------------------------------------------------------------------ |
+| `profile Profile?`  | **Relation optionnelle** : un utilisateur peut avoir ou non un profil          |
+| `profile Profile`   | **Relation obligatoire** : un utilisateur doit obligatoirement avoir un profil |
+
+Dans les deux cas, cela affecte :
+
+* Les **contraintes de base de données** (NOT NULL ou non)
+* Le comportement des requêtes Prisma (champ nullable ou non dans le type TypeScript)
+
+---
+
+### <h2 id="exemple-optionnel">Exemple : relation One-to-One optionnelle</h2>
+
+```prisma
+model User {
+  id      String   @id @default(cuid())
+  email   String   @unique
+  profile Profile?          // un utilisateur peut ne pas avoir de profil
+}
+
+model Profile {
+  id     String @id @default(cuid())
+  bio    String
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @unique
+}
+```
+
+### Cas concrets :
+
+* Utilisateur sans profil :
+
+```js
+await prisma.user.create({
+  data: { email: 'no-profile@test.com' }
+})
+```
+
+* Utilisateur avec profil :
+
+```js
+await prisma.user.create({
+  data: {
+    email: 'with-profile@test.com',
+    profile: {
+      create: {
+        bio: 'Développeuse passionnée'
+      }
+    }
+  }
+})
+```
+
+---
+
+### <h2 id="remarques">Remarques importantes</h2>
+
+* L’optionnalité est toujours côté **champ relationnel**, pas nécessairement côté clé étrangère.
+* `Profile?` signifie que le champ `profile` **peut être omis** ou `null` dans les requêtes `findUnique()`, `include`, etc.
+
+
